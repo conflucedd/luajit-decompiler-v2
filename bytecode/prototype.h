@@ -10,6 +10,7 @@ public:
 		uint8_t parameters = 0;
 		uint8_t framesize = 0;
 		bool hasDebugInfo = false;
+		bool hasLineInfo = false;
 		uint32_t firstLine = 0;
 		uint32_t lineCount = 0;
 	} header;

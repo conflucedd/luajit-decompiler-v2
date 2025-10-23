@@ -353,6 +353,18 @@ void Lua::write_expression(const Ast::Expression& expression, const bool& usePar
 			write_number(expression.constant->number);
 			write("i");
 			break;
+		case Ast::AST_CONSTANT_HASH:
+			if (bytecode.header.version == Bytecode::BC_VERSION_82) {
+				std::string string(20, '\0');
+				std::snprintf(string.data(), string.size() + 1, "x64:%.16llX", expression.constant->hash);
+				write(string);
+			} else {
+				std::string string(23, '\0');
+				std::snprintf(string.data(), string.size() + 1, "x64:%.2hhX:%.16llX", expression.constant->hashType, expression.constant->hash);
+				write(string);
+			}
+
+			break;
 		case Ast::AST_CONSTANT_STRING:
 			write("\"");
 			write_string(expression.constant->string);

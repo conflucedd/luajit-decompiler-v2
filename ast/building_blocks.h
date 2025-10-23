@@ -101,6 +101,7 @@ enum AST_CONSTANT {
 	AST_CONSTANT_CDATA_SIGNED,
 	AST_CONSTANT_CDATA_UNSIGNED,
 	AST_CONSTANT_CDATA_IMAGINARY,
+	AST_CONSTANT_HASH,
 	AST_CONSTANT_STRING
 };
 
@@ -111,6 +112,11 @@ struct Ast::Constant {
 		double number;
 		int64_t signed_integer;
 		uint64_t unsigned_integer = 0;
+
+		struct {
+			uint64_t hash;
+			uint8_t hashType;
+		};
 	};
 
 	std::string string;

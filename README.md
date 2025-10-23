@@ -1,3 +1,5 @@
+This branch supports Call of Duty bytecode versions `0x82`, `0x83` and `0x84`.
+
 ## LuaJIT Decompiler v2
 
 *LuaJIT Decompiler v2* is a replacement tool for the old and now mostly defunct python decompiler.  

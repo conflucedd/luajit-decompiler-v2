@@ -29,11 +29,11 @@ void Bytecode::read_header() {
 		+ ", got " + byte_to_string(fileBuffer[0]) + " " + byte_to_string(fileBuffer[1]) + " " + byte_to_string(fileBuffer[2])
 		+ "\n\nFile does not contain valid LuaJIT bytecode", filePath, DEBUG_INFO);
 	header.version = fileBuffer[3];
-	assert(header.version == BC_VERSION_1 || header.version == BC_VERSION_2, "Invalid bytecode version (" + byte_to_string(fileBuffer[3]) + ")", filePath, DEBUG_INFO);
+	assert(header.version == BC_VERSION_82 || header.version == BC_VERSION_83 || header.version == BC_VERSION_84, "Invalid bytecode version (" + byte_to_string(fileBuffer[3]) + ")", filePath, DEBUG_INFO);
 	header.flags = fileBuffer[4];
-	assert(!(header.flags & ~(BC_F_BE | BC_F_STRIP | BC_F_FFI | (header.version == BC_VERSION_2 ? BC_F_FR2 : 0))), "Invalid flags (" + byte_to_string(header.flags) + ")", filePath, DEBUG_INFO);
+	assert(!(header.flags & ~(BC_F_BE | BC_F_STRIP | BC_F_FFI | BC_F_FR2 | BC_F_STRIP_VAR)), "Invalid flags (" + byte_to_string(header.flags) + ")", filePath, DEBUG_INFO);
 	assert(!(header.flags & BC_F_BE), "Big endian support not implemented", filePath, DEBUG_INFO); //TODO
-	if (header.flags & BC_F_STRIP) return;
+	if (header.flags & BC_F_STRIP || header.flags & BC_F_STRIP_VAR) return;
 	read_file(read_uleb128());
 	header.chunkname.resize(fileBuffer.size());
 	header.chunkname.replace(header.chunkname.begin(), header.chunkname.end(), fileBuffer.begin(), fileBuffer.end());

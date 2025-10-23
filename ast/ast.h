@@ -70,6 +70,7 @@ private:
 	Expression* new_string(const Function& function, const uint16_t& index);
 	Expression* new_table(const Function& function, const uint16_t& index);
 	Expression* new_cdata(const Function& function, const uint16_t& index);
+	Expression* new_hash(const Function& function, const uint16_t& index);
 
 	static uint32_t get_block_index_from_id(const std::vector<Statement*>& block, const uint32_t& id);
 	static uint32_t get_extended_id_from_statement(Statement* const& statement);

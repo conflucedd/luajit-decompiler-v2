@@ -31,7 +31,7 @@ Ast::Expression*& Ast::new_expression(const AST_EXPRESSION& type) {
 void Ast::operator()() {
 	print_progress_bar();
 	chunk = new_function(*bytecode.main, 0);
-	isFR2Enabled = bytecode.header.version == Bytecode::BC_VERSION_2 && (bytecode.header.flags & Bytecode::BC_F_FR2);
+	isFR2Enabled = bytecode.header.flags & Bytecode::BC_F_FR2;
 	prototypeDataLeft = bytecode.prototypesTotalSize;
 	uint32_t functionCounter = 0;
 	build_functions(*chunk, functionCounter);
@@ -583,6 +583,9 @@ void Ast::build_expressions(Function& function, std::vector<Statement*>& block) 
 				block[i]->assignment.expressions.back() = new_string(function, block[i]->instruction.d);
 				check_valid_name(block[i]->assignment.expressions.back()->constant);
 				break;
+			case Bytecode::BC_OP_KHASH:
+				block[i]->assignment.expressions.back() = new_hash(function, block[i]->instruction.d);
+				break;
 			case Bytecode::BC_OP_KCDATA:
 				block[i]->assignment.expressions.back() = new_cdata(function, block[i]->instruction.d);
 				break;
@@ -827,7 +830,7 @@ void Ast::build_expressions(Function& function, std::vector<Statement*>& block) 
 			case Bytecode::BC_OP_RETM:
 			case Bytecode::BC_OP_RET:
 			case Bytecode::BC_OP_RET1:
-				block[i]->assignment.expressions.resize(block[i]->instruction.d + (block[i]->instruction.type == Bytecode::BC_OP_RETM ? 0 : -1), nullptr);
+				block[i]->assignment.expressions.resize(block[i]->instruction.type == Bytecode::BC_OP_RET1 ? 1 : block[i]->instruction.d + (block[i]->instruction.type == Bytecode::BC_OP_RETM ? 0 : -1), nullptr);
 
 				for (uint8_t j = 0; j < block[i]->assignment.expressions.size(); j++) {
 					block[i]->assignment.expressions[j] = new_slot(block[i]->instruction.a + j);
@@ -3465,6 +3468,7 @@ Ast::CONSTANT_TYPE Ast::get_constant_type(Expression* const& expression) {
 			return NIL_CONSTANT;
 		case AST_CONSTANT_FALSE:
 		case AST_CONSTANT_TRUE:
+		case AST_CONSTANT_HASH:
 		case AST_CONSTANT_STRING:
 			return BOOL_CONSTANT;
 		case AST_CONSTANT_NUMBER:
@@ -3622,6 +3626,11 @@ Ast::Expression* Ast::new_table(const Function& function, const uint16_t& index)
 			expression->constant->number = std::bit_cast<double>(constant.number);
 			check_special_number(expression);
 			break;
+		case Bytecode::BC_KTAB_HASH:
+			expression->constant->type = AST_CONSTANT_HASH;
+			expression->constant->hash = constant.hash;
+			expression->constant->hashType = constant.hashType;
+			break;
 		case Bytecode::BC_KTAB_STR:
 			expression->constant->type = AST_CONSTANT_STRING;
 			expression->constant->string = constant.string;
@@ -3643,7 +3652,7 @@ Ast::Expression* Ast::new_table(const Function& function, const uint16_t& index)
 		Expression* key;
 		Expression** value;
 		Table::Field falseField, trueField;
-		std::vector<Table::Field> numberFields, stringFields;
+		std::vector<Table::Field> numberFields, hashFields, stringFields;
 
 		for (uint32_t i = function.get_constant(index).table.size(); i--;) {
 			key = new_table_constant(function.get_constant(index).table[i].key);
@@ -3667,6 +3676,16 @@ Ast::Expression* Ast::new_table(const Function& function, const uint16_t& index)
 				numberFields.emplace(numberFields.begin() + position, Table::Field{ .key = key });
 				value = &numberFields[position].value;
 				break;
+			case AST_CONSTANT_HASH:
+				position = hashFields.size();
+
+				while (position && (hashFields[position - 1].key->constant->hashType > key->constant->hashType || hashFields[position - 1].key->constant->hash > key->constant->hash)) {
+					position--;
+				}
+
+				hashFields.emplace(hashFields.begin() + position, Table::Field{ .key = key });
+				value = &hashFields[position].value;
+				break;
 			case AST_CONSTANT_STRING:
 				check_valid_name(key->constant);
 				position = stringFields.size();
@@ -3687,8 +3706,9 @@ Ast::Expression* Ast::new_table(const Function& function, const uint16_t& index)
 
 		if (falseField.key) expression->table->constants.fields.emplace_back(falseField);
 		if (trueField.key) expression->table->constants.fields.emplace_back(trueField);
-		expression->table->constants.fields.reserve(expression->table->constants.fields.size() + numberFields.size() + stringFields.size());
+		expression->table->constants.fields.reserve(expression->table->constants.fields.size() + numberFields.size() + hashFields.size() + stringFields.size());
 		expression->table->constants.fields.insert(expression->table->constants.fields.begin() + expression->table->constants.fields.size(), numberFields.begin(), numberFields.begin() + numberFields.size());
+		expression->table->constants.fields.insert(expression->table->constants.fields.begin() + expression->table->constants.fields.size(), hashFields.begin(), hashFields.begin() + hashFields.size());
 		expression->table->constants.fields.insert(expression->table->constants.fields.begin() + expression->table->constants.fields.size(), stringFields.begin(), stringFields.begin() + stringFields.size());
 	} else {
 		expression->table->constants.fields.resize(function.get_constant(index).table.size());
@@ -3722,5 +3742,13 @@ Ast::Expression* Ast::new_cdata(const Function& function, const uint16_t& index)
 		break;
 	}
 
+	return expression;
+}
+
+Ast::Expression* Ast::new_hash(const Function& function, const uint16_t& index) {
+	Expression* const expression = new_expression(AST_EXPRESSION_CONSTANT);
+	expression->constant->type = AST_CONSTANT_HASH;
+	expression->constant->hash = function.get_constant(index).hash;
+	expression->constant->hashType = function.get_constant(index).hashType;
 	return expression;
 }

@@ -24,7 +24,8 @@ void Bytecode::Prototype::read_header() {
 	instructions.resize(get_uleb128());
 	assert(instructions.size(), "Prototype has no instructions", bytecode.filePath, DEBUG_INFO);
 	if (bytecode.header.flags & BC_F_STRIP || !get_uleb128()) return;
-	header.hasDebugInfo = true;
+	header.hasDebugInfo = !(bytecode.header.flags & BC_F_STRIP_VAR);
+	header.hasLineInfo = true;
 	header.firstLine = get_uleb128();
 	header.lineCount = get_uleb128();
 }
@@ -37,6 +38,8 @@ void Bytecode::Prototype::read_instructions() {
 		switch (instructions[i].type) {
 		case BC_OP_ISTYPE:
 		case BC_OP_ISNUM:
+		case BC_OP_UNKNOWN1:
+		case BC_OP_UNKNOWN2:
 		case BC_OP_TGETR:
 		case BC_OP_TSETR:
 		case BC_OP_JFORI:
@@ -112,6 +115,12 @@ void Bytecode::Prototype::read_constants(std::vector<Prototype*>& unlinkedProtot
 			constants[i].cdata = get_uleb128();
 			constants[i].cdata |= (uint64_t)get_uleb128() << 32;
 			continue;
+		case BC_KGC_HASH:
+			constants[i].type = (BC_KGC)type;
+			constants[i].hash = (uint64_t)get_uleb128() << 32;
+			constants[i].hash |= get_uleb128();
+			if (bytecode.header.version != BC_VERSION_82) constants[i].hashType = get_next_byte();
+			continue;
 		default:
 			constants[i].type = BC_KGC_STR;
 			constants[i].string.resize(type - BC_KGC_STR);
@@ -139,7 +148,7 @@ void Bytecode::Prototype::read_number_constants() {
 }
 
 void Bytecode::Prototype::read_debug_info() {
-	if (!header.hasDebugInfo) return;
+	if (!header.hasLineInfo) return;
 	lineMap.resize(instructions.size());
 
 	if (header.lineCount < 256) {
@@ -160,6 +169,7 @@ void Bytecode::Prototype::read_debug_info() {
 		}
 	}
 
+	if (!header.hasDebugInfo) return;
 	upvalueNames.resize(upvalues.size());
 
 	for (uint8_t i = 0; i < upvalueNames.size(); i++) {
@@ -264,6 +274,12 @@ Bytecode::TableConstant Bytecode::Prototype::get_table_constant() {
 		tableConstant.type = BC_KTAB_NUM;
 		tableConstant.number = get_uleb128();
 		tableConstant.number |= (uint64_t)get_uleb128() << 32;
+		break;
+	case BC_KTAB_HASH:
+		tableConstant.type = BC_KTAB_HASH;
+		tableConstant.hash = (uint64_t)get_uleb128() << 32;
+		tableConstant.hash |= get_uleb128();
+		if (bytecode.header.version != BC_VERSION_82) tableConstant.hashType = get_next_byte();
 		break;
 	default:
 		tableConstant.type = BC_KTAB_STR;
