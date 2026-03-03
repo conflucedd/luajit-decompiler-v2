@@ -1,4 +1,4 @@
-#include "..\main.h"
+#include "../main.h"
 
 Bytecode::Bytecode(const std::string& filePath) : filePath(filePath) {}
 
@@ -59,25 +59,24 @@ void Bytecode::read_prototypes() {
 }
 
 void Bytecode::open_file() {
-	file = CreateFileA(filePath.c_str(), GENERIC_READ, NULL, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN, NULL);
+	file = platform_open(filePath.c_str(), false);
 	assert(file != INVALID_HANDLE_VALUE, "Unable to open file", filePath, DEBUG_INFO);
-	fileSize |= (uint64_t)GetFileSize(file, (DWORD*)&fileSize) << 32;
-	fileSize = (fileSize >> 32) | (fileSize << 32);
+	fileSize = platform_get_file_size(file);
 	assert(fileSize >= MIN_FILE_SIZE, "File is too small or empty", filePath, DEBUG_INFO);
 	bytesUnread = fileSize;
 }
 
 void Bytecode::close_file() {
 	if (file == INVALID_HANDLE_VALUE) return;
-	CloseHandle(file);
+	platform_close(file);
 	file = INVALID_HANDLE_VALUE;
 }
 
 void Bytecode::read_file(const uint32_t& byteCount) {
 	assert(bytesUnread >= byteCount, "Read would exceed end of file", filePath, DEBUG_INFO);
 	fileBuffer.resize(byteCount);
-	DWORD bytesRead = 0;
-	assert(ReadFile(file, fileBuffer.data(), byteCount, &bytesRead, NULL) && !(byteCount - bytesRead), "Failed to read file", filePath, DEBUG_INFO);
+	uint32_t bytesRead = 0;
+	assert(platform_read(file, fileBuffer.data(), byteCount, &bytesRead) && !(byteCount - bytesRead), "Failed to read file", filePath, DEBUG_INFO);
 	bytesUnread -= byteCount;
 }
 

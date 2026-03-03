@@ -10,11 +10,13 @@ private:
 		NUMBER_CONSTANT
 	};
 
-	struct Local;
-	struct SlotScope;
+	// struct Local;  // defined in function.h
+	// struct SlotScope;  // defined in function.h
 	struct ConditionBuilder;
 
 public:
+	struct Local;
+	struct SlotScope;
 	struct Expression;
 	struct Constant;
 	struct Variable;
@@ -36,7 +38,7 @@ public:
 
 private:
 
-	#include "conditionBuilder.h";
+	#include "conditionBuilder.h"
 
 	struct BlockInfo {
 		uint32_t index = INVALID_ID;

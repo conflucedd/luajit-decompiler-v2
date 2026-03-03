@@ -1,18 +1,17 @@
 /*
 Requirements:
-  Visual Studio
   C++20
-  Windows API
-  Default char is unsigned (/J)
+  Default char is unsigned (-funsigned-char)
 */
 
-#ifndef _CHAR_UNSIGNED
-#error Default char is not unsigned!
+// Check if char is unsigned
+#ifdef __CHAR_UNSIGNED__
+#define _CHAR_UNSIGNED
 #endif
 
-#pragma comment(linker, "/stack:268435456")
-#pragma comment(linker, "/manifestdependency:\"type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
-#pragma comment(lib, "shlwapi.lib")
+#ifndef _CHAR_UNSIGNED
+#warning Default char is not unsigned! Compile with -funsigned-char or equivalent.
+#endif
 
 #include <bit>
 #include <cmath>
@@ -20,11 +19,48 @@ Requirements:
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cerrno>
 
-#include <windows.h>
-#include <conio.h>
-#include <fileapi.h>
-#include <shlwapi.h>
+// Linux headers
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <libgen.h>
+
+// Platform-specific type aliases
+using HANDLE = int;
+constexpr HANDLE INVALID_HANDLE_VALUE = -1;
+
+// Platform abstraction functions
+inline HANDLE platform_open(const char* path, bool write) {
+    int fd = open(path, write ? (O_WRONLY | O_CREAT | O_TRUNC) : O_RDONLY, 0666);
+    return fd;
+}
+inline void platform_close(HANDLE handle) {
+    close(handle);
+}
+inline bool platform_read(HANDLE handle, void* buffer, uint32_t size, uint32_t* bytesRead) {
+    ssize_t result = read(handle, buffer, size);
+    if (result < 0) return false;
+    *bytesRead = result;
+    return true;
+}
+inline bool platform_write(HANDLE handle, const void* buffer, uint32_t size, uint32_t* bytesWritten) {
+    ssize_t result = write(handle, buffer, size);
+    if (result < 0) return false;
+    *bytesWritten = result;
+    return true;
+}
+inline uint64_t platform_get_file_size(HANDLE handle) {
+    struct stat st;
+    if (fstat(handle, &st) == -1) return 0;
+    return st.st_size;
+}
 
 #define DEBUG_INFO __FUNCTION__, __FILE__, __LINE__
 
@@ -46,6 +82,6 @@ class Bytecode;
 class Ast;
 class Lua;
 
-#include "bytecode\bytecode.h"
-#include "ast\ast.h"
-#include "lua\lua.h"
+#include "bytecode/bytecode.h"
+#include "ast/ast.h"
+#include "lua/lua.h"
