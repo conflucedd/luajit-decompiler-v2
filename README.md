@@ -3,27 +3,11 @@ This is fork from marsinator358/luajit-decompiler-v2, thanks him.
 I use claude code and deepseek api to build this version.
 Add support to linux and drop support to windows(well just because I want to make things simple, if you want windows version please just use his origin version)
 
-
-*LuaJIT Decompiler v2* is a replacement tool for the old and now mostly defunct python decompiler.  
-The project fixes all of the bugs and quirks the python decompiler had while also offering  
-full support for gotos and stripped bytecode including locals and upvalues.
-
 ## Usage
+luajit-decompiler-v2 input.lua
+and the output will in output folder
 
-1. Head to the release section and download the latest executable.
-2. Drag and drop a valid LuaJIT bytecode file or a folder containing such files onto the exe.  
-Alternatively, run the program in a command prompt. Use `-?` to show usage and options.
-3. All successfully decompiled `.lua` files are placed by default into the `output` folder  
-located in the same directory as the exe.
+## Compile
+g++ -std=c++20 -funsigned-char -I. -o luajit-decompiler-v2 main.cpp bytecode/bytecode.cpp bytecode/prototype.cpp ast/ast.cpp lua/lua.cpp
 
-Feel free to [report any issues](https://github.com/marsinator358/luajit-decompiler-v2/issues/new) you have.
-
-## TODO
-
-* bytecode big endian support
-* improved decompilation logic for conditional assignments
-
----
-
-This project uses an boolean expression decompilation algorithm that is based on this paper:  
-[www.cse.iitd.ac.in/~sak/reports/isec2016-paper.pdf](https://www.cse.iitd.ac.in/~sak/reports/isec2016-paper.pdf)
+my g++ version is 15.2.1 20260209 and I use Archlinux in 2026.3.1(latest) build this.
